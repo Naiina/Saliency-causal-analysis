@@ -4,12 +4,12 @@
 |----------------------------------------|------------------------------------------------------------|-------------------------------------------------|--------|
 | `coco_image_selection_eddition.py`   | Identify appropriate pictures an object to change  | `img_and_promts_to_change_val2017.csv`        |
 | `qwen_inf.py`                           | Generates image pairs by modifying selected objects.    | `COCO/val2017/changed_obj_i/`        | 3min / image
-| `yolo_segmentation.py` | Runs YOLO segmentation and keeps only objects with significant size ratio. |    `COCO/val2017/changed_i_yolo_filtered/`         | quick|
+| `yolo_segmentation.py` | For Rank only: Runs YOLO segmentation and keeps only objects with significant size ratio. |    `COCO/val2017/changed_i_yolo_filtered/`         | quick|
 | `laava_captioning.py`                  | Generates captions consistent with modified images.        | `COCO/val2017/changed_5_filtered_captions.csv`      | 3s per item|
 | `feature_extraction_llm_caption.py` `save_feat`                 | Extracts rank voice deprel     | `img_and_captions_changed_5.csv`      | |
 | `plot.py`                | Rank plot and deprel Stuart-Maxwell  test    |       |
 
-## Subset 5:
+## Size modification subset 5:
 - `changed_obj_5`: 289 pairs
 -  `changed_5_yolo_filtered`: 200 pairs
 -  Both ranks -1: 30   /   Small only mentioned: 3   /   Big only mentioned: 41   /   Both mentioned: 126
@@ -24,9 +24,9 @@
 | furniture  | 0.941176  | 2.461468  | 17       |
 | indoor     | 0.750000  | 1.164965  | 8        |
 | kitchen    | 0.000000  | 0.816497  | 4        |
-| outdoor    | 2.000000  | 1.549193  | 11       |
+| outdoor    | 2.000000  | 1.549193  | 10       |
 | person     | 4.615385  | 3.571612  | 13       |
-| sports     | 0.181818  | 1.328020  | 11       |
+| sports     | 0.181818  | 1.328020  | 5       |
 | vehicle    | 2.733333  | 3.657145  | 30       |
 
 
