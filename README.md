@@ -12,7 +12,7 @@
 ## Subset 5:
 - `changed_obj_5`: 289 pairs
 -  `changed_5_yolo_filtered`: 200 pairs
--  Both ranks -1: 25   /   Small only mentioned: 3   /   Big only mentioned: 39   /   Both mentioned: 133
+-  Both ranks -1: 30   /   Small only mentioned: 3   /   Big only mentioned: 41   /   Both mentioned: 126
 
  | s_categ     | mean      | std       | nb_elems |
 |------------|-----------|-----------|----------|
