@@ -14,3 +14,18 @@
 -  `changed_5_yolo_filtered`: 200 pairs
 -  Both ranks -1: 25   /   Small only mentioned: 3   /   Big only mentioned: 39   /   Both mentioned: 133
 
+ | s_categ     | mean      | std       | nb_elems |
+|------------|-----------|-----------|----------|
+| accessory  | 3.285714  | 3.638419  | 7        |
+| animal     | 0.750000  | 1.832251  | 8        |
+| appliance  | 1.444444  | 2.920236  | 9        |
+| electronic | -0.714286 | 3.831621  | 14       |
+| food       | -1.000000 | NaN       | 1        |
+| furniture  | 0.941176  | 2.461468  | 17       |
+| indoor     | 0.750000  | 1.164965  | 8        |
+| kitchen    | 0.000000  | 0.816497  | 4        |
+| outdoor    | 2.000000  | 1.549193  | 11       |
+| person     | 4.615385  | 3.571612  | 13       |
+| sports     | 0.181818  | 1.328020  | 11       |
+| vehicle    | 2.733333  | 3.657145  | 30       |
+
