@@ -29,3 +29,5 @@
 | sports     | 0.181818  | 1.328020  | 11       |
 | vehicle    | 2.733333  | 3.657145  | 30       |
 
+
+![Rank res subset 5](https://github.com/Naiina/Saliency-causal-analysis/blob/main/Rank_5.pdf)
