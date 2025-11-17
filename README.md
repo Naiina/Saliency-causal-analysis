@@ -31,3 +31,24 @@
 
 
 ![Rank res subset 5](https://github.com/Naiina/Saliency-causal-analysis/blob/main/Rank_5.pdf)
+
+
+## HOI
+-hoi_out: 297
+-Both not mentioned: 53  /  No hoi only mentioned: 24  /  HOI only mentioned: 74  /  Both mentioned: 146
+
+|       s_categ   |    mean   |    std  |    nb_elems |
+|------------|-----------|-----------|----------|
+|0    accessory  | 10.000000   |    NaN   |      1|
+|1       animal   | 3.307692 | 5.647782   |     13|
+|2    appliance |  2.884615  |2.943833    |    26|
+|3   electronic |  1.937500  |2.313181    |    32|
+|4         food |  4.818182  |3.458849    |    11|
+|5    furniture |  2.678571  |2.326236    |    28|
+|6       indoor |  1.500000   |2.258318   |      6|
+|7      kitchen   4.166667   |3.311596    |     6|
+|8      outdoor |  2.222222  | 2.488864   |      9|
+|9       sports |  4.500000  | 4.949747   |      2|
+|10     vehicle |  1.500000  | 3.261344   |     12|
+
+
