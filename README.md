@@ -4,7 +4,7 @@
 |----------------------------------------|------------------------------------------------------------|-------------------------------------------------|--------|
 | `coco_image_selection_eddition.py`   | Identify appropriate pictures an object to change  | `img_and_promts_to_change_val2017.csv`        |
 | `qwen_inf.py`                           | Generates image pairs by modifying selected objects.    | `COCO/val2017/changed_obj_i/`        | 3min / image
-| `yolo_segmentation.py` | For Rank only: Runs YOLO segmentation and keeps only objects with significant size ratio. |    `COCO/val2017/changed_i_yolo_filtered/`         | quick|
+| `yolo_segmentation.py` | **For size** : Runs YOLO segmentation and keeps only objects with significant size ratio. **For hoi**: keep pictures with 1 / 0 person and 1 entity. iuo ration of the entities > 0.5 (make sure another entity wasn't added) |    `COCO/val2017/changed_i_yolo_filtered/`  `COCO/val2017/hoi_out_filtered/`       | quick|
 | `laava_captioning.py`                  | Generates captions consistent with modified images.        | `COCO/val2017/changed_5_filtered_captions.csv`      | 3s per item|
 | `feature_extraction_llm_caption.py` `save_feat`                 | Extracts rank voice deprel     | `img_and_captions_changed_5.csv`      | |
 | `plot.py`                | Rank plot and deprel Stuart-Maxwell  test    |       |
@@ -34,21 +34,8 @@
 
 
 ## HOI
--hoi_out: 297
--Both not mentioned: 53  /  No hoi only mentioned: 24  /  HOI only mentioned: 74  /  Both mentioned: 146
-
-|       s_categ   |    mean   |    std  |    nb_elems |
-|------------|-----------|-----------|----------|
-|0    accessory  | 10.000000   |    NaN   |      1|
-|1       animal   | 3.307692 | 5.647782   |     13|
-|2    appliance |  2.884615  |2.943833    |    26|
-|3   electronic |  1.937500  |2.313181    |    32|
-|4         food |  4.818182  |3.458849    |    11|
-|5    furniture |  2.678571  |2.326236    |    28|
-|6       indoor |  1.500000   |2.258318   |      6|
-|7      kitchen   4.166667   |3.311596    |     6|
-|8      outdoor |  2.222222  | 2.488864   |      9|
-|9       sports |  4.500000  | 4.949747   |      2|
-|10     vehicle |  1.500000  | 3.261344   |     12|
+-hoi_out: pairs 297
+-after filtering: 67 pairs
+manual inspection: 9 / 67 where human interacts with the wrong entity. Often if entity is small / on the side and difficult to identity or interact with. 5 yolo filtering errors and 2 wired pictures
 
 
