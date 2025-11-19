@@ -3,11 +3,13 @@ import os
 import torch
 from PIL import Image
 from diffusers import QwenImageEditPlusPipeline
-from diffusers import QwenImageEditPipeline
-from qwen_vl_utils import process_vision_info
+#from diffusers import QwenImageEditPipeline
+#from qwen_vl_utils import process_vision_info
 import csv
 from tqdm import tqdm
-import pandas as pd
+import pandas as pdQwenImageEditPipeline
+import torchvision.transforms as T
+
 
 def load_qwen_model():
     pipeline = QwenImageEditPlusPipeline.from_pretrained(
@@ -15,13 +17,11 @@ def load_qwen_model():
         device_map="balanced",        
         offload_folder="offload",
         local_files_only=True,
-        #torch_dtype=torch.float32
 
     )
-    #pipeline.to(torch.bfloat16)
     print("Pipeline loaded across GPUs")
-    pipeline.enable_attention_slicing()
     pipeline.set_progress_bar_config(disable=None)
+    pipeline.enable_attention_slicing()
     
 
     return pipeline
@@ -55,6 +55,9 @@ def qwen_inf_add_test():
             input_image = Image.open(img_path)
             if input_image.mode not in ("RGB", "RGBA"):
                 input_image = input_image.convert("RGB")
+            device = pipeline.device or torch.device("cuda")
+
+            input_image = input_image.to(device)#, dtype=torch.float16)
             
 
             inputs = {
@@ -171,163 +174,6 @@ def qwen_inf_change():
 
 
 
-
-def qwen_inf_change_make_small():
-    img_folder = "COCO/val2017/obj_to_change"
-    out_folder = "COCO/val2017/changed_obj_3"
-    with open("img_and_promts_to_change_val2017.csv", newline='', encoding='utf-8') as csvfile:
-        reader = csv.reader(csvfile)
-        next(reader)
-        for row in tqdm(reader):
-                
-            img_name = row[1]
-            obj = row[2]
-
-            img_path = os.path.join(img_folder,img_name)
-
-            input_image = Image.open(img_path)
-            if input_image.mode not in ("RGB", "RGBA"):
-                input_image = input_image.convert("RGB")
-            input_image.save(f"{out_folder}/{img_name.split(".")[0]}_{obj}.png")
-
-            inputs = {
-                "image": [input_image],
-                #"prompt": [f"Add a {obj}. It has to be small or in the background."],
-                "prompt":[f"Make the {obj} smaller and non-central."],
-                "generator": torch.manual_seed(0),
-                "true_cfg_scale": 4.0,
-                "negative_prompt": " ",
-                "num_inference_steps": 15,
-                "guidance_scale": 1.0,
-                "num_images_per_prompt": 1,
-            }
-            with torch.inference_mode():
-
-                output = pipeline(**inputs)
-                output_image = output.images[0]
-                output_image.save(f"{out_folder}/{img_name.split(".")[0]}_{obj}_small.png")
-
-
-        print("✅ Inference done.")
-
-
-
-
-def qwen_inf_change_make_big():
-    img_folder = "COCO/val2017/obj_to_change"
-    out_folder = "COCO/val2017/changed_obj_bigger"
-    with open("img_and_promts_to_change_2_val2017.csv", newline='', encoding='utf-8') as csvfile:
-        reader = csv.reader(csvfile)
-        next(reader)
-        for row in tqdm(reader):
-                
-            img_name = row[1]
-            obj = row[2]
-
-            img_path = os.path.join(img_folder,img_name)
-
-            input_image = Image.open(img_path)
-            if input_image.mode not in ("RGB", "RGBA"):
-                input_image = input_image.convert("RGB")
-            input_image.save(f"{out_folder}/{img_name.split(".")[0]}_{obj}.png")
-
-            inputs = {
-                "image": [input_image],
-                #"prompt": [f"Add a {obj}. It has to be small or in the background."],
-                "prompt":[f"Make the {obj} bigger and central. It has to remain realistic."],
-                "generator": torch.manual_seed(0),
-                "true_cfg_scale": 4.0,
-                "negative_prompt": " ",
-                "num_inference_steps": 15,
-                "guidance_scale": 1.0,
-                "num_images_per_prompt": 1,
-            }
-            with torch.inference_mode():
-
-                output = pipeline(**inputs)
-                output_image = output.images[0]
-                output_image.save(f"{out_folder}/{img_name.split(".")[0]}_{obj}_big.png")
-
-
-        print("✅ Inference done.")
-
-
-def qwen_inf_change_2():
-    img_folder = "COCO/val2017/obj_to_change_2"
-    out_folder = "COCO/val2017/changed_obj_2"
-    with open("img_and_promts_to_change_2_val2017.csv", newline='', encoding='utf-8') as csvfile:
-        reader = csv.reader(csvfile)
-        next(reader)
-        for row in tqdm(reader):
-                
-            img_name = row[1]
-            obj = row[2]
-
-            img_path = os.path.join(img_folder,img_name)
-
-            input_image = Image.open(img_path)
-            if input_image.mode not in ("RGB", "RGBA"):
-                input_image = input_image.convert("RGB")
-            input_image.save(f"{out_folder}/{img_name.split(".")[0]}_{obj}_small.png")
-            
-            inputs = {
-                "image": [input_image],
-                "prompt": f"Remove the {obj}.",
-                "generator": torch.manual_seed(0),
-                "true_cfg_scale": 4.0,
-                "negative_prompt": " ",
-                "num_inference_steps": 10,
-                "guidance_scale": 1.0,
-                "num_images_per_prompt": 1,
-            }
-
-            with torch.inference_mode():
-
-                output = pipeline(**inputs)
-                output_image_rm = output.images[0]
-                output_image_rm.save(f"{out_folder}/{img_name.split(".")[0]}_{obj}_rm.png")
-
-            #inputs = {
-            #    "image": [output_image_rm],
-            #    #"prompt": [f"Add a {obj}. It has to be small or in the background."],
-            #    "prompt":[f"Add a {obj}. Make the {obj} integrated into the image as a non-central object, and have it's size scaled appropriately to its place in the foreground/background"],
-            #    "generator": torch.manual_seed(0),
-            #    "true_cfg_scale": 4.0,
-            #    "negative_prompt": " ",
-            #    "num_inference_steps": 10,
-            #    "guidance_scale": 1.0,
-            #    "num_images_per_prompt": 1,
-            #}
-
-            #with torch.inference_mode():
-
-            #    output = pipeline(**inputs)
-            #    output_image = output.images[0]
-            #    output_image.save(f"{out_folder}/{img_name.split(".")[0]}_{obj}_small.png")
-
-            inputs = {
-                "image": [output_image_rm],
-                "prompt": f"Add a {obj}.",
-                "generator": torch.manual_seed(0),
-                "true_cfg_scale": 4.0,
-                "negative_prompt": " ",
-                "num_inference_steps": 10,
-                "guidance_scale": 1.0,
-                "num_images_per_prompt": 1,
-            }
-
-            with torch.inference_mode():
-
-                output = pipeline(**inputs)
-                output_image = output.images[0]
-                output_image.save(f"{out_folder}/{img_name.split(".")[0]}_{obj}.png")
-
-        print("✅ Inference done.")
-
-
-
-
-
 def qwen_inf_hoi():
     img_folder = "COCO/val2017/hoi"
     out_folder = "COCO/val2017/hoi_out"
@@ -370,59 +216,62 @@ def qwen_inf_hoi():
 
 
 def qwen_inf_hoi_2():
-    img_folder = "COCO/val2017/hoi"
-    out_folder = "COCO/val2017/hoi_out_2"
-    with open("img_and_promts_hoi.csv", newline='', encoding='utf-8') as csvfile:
-        reader = csv.reader(csvfile)
-        next(reader)
-        for row in tqdm(reader):
-                
-            img_name = row[1]
-            obj = row[2]
-
-            img_path = os.path.join(img_folder,img_name)
-
-            input_image = Image.open(img_path)
-            if input_image.mode not in ("RGB", "RGBA"):
-                input_image = input_image.convert("RGB")
-            input_image.save(f"{out_folder}/{img_name.split(".")[0]}_{obj}_no_hoi.png")
-            
-            inputs = {
-                "image": [input_image],
-                "prompt": f"Have a person interacting with the {obj} in the image. Have them use the {obj} according to its fundamental purpose or function, and have them use it in the most often used manner.",
-                "generator": torch.manual_seed(0),
-                "true_cfg_scale": 4.0,
-                "negative_prompt": " ",
-                "num_inference_steps": 10,
-                "guidance_scale": 1.0,
-                "num_images_per_prompt": 1,
-            }
-
-            with torch.inference_mode():
-
-                output = pipeline(**inputs)
-                output_image_rm = output.images[0]
-                output_image_rm.save(f"{out_folder}/{img_name.split(".")[0]}_{obj}_hoi.png")
-            
-            #inputs = {
-            #    "image": [input_image],
-            #    "prompt": f"Place a person who is adjacent to the {obj}, without interacting with the {obj}.",
-            #    "generator": torch.manual_seed(0),
-            #    "true_cfg_scale": 4.0,
-            #    "negative_prompt": " ",
-            #    "num_inference_steps": 10,
-            #    "guidance_scale": 1.0,
-            #    "num_images_per_prompt": 1,
-            #}
-
-            #with torch.inference_mode():
-
-            #    output = pipeline(**inputs)
-            #    output_image_rm = output.images[0]
-            #    output_image_rm.save(f"{out_folder}/{img_name.split(".")[0]}_{obj}_hoi_else.png")
+    img_folder = "COCO/val2017/changed_obj_5"
+    out_folder = "COCO/val2017/hoi_out_5"
+    l_img = os.listdir(img_folder)
 
 
-        print("✅ Inference done.")
+    for img_name in tqdm(l_img):
+        print(img_name)
+        if "rm" in img_name or "small" in img_name:
+            continue
+        obj = img_name.split(".")[0].split("_")[1]
+        print(obj)
+        
+        img_path = os.path.join(img_folder,img_name)
+
+        input_image = Image.open(img_path)
+        if input_image.mode not in ("RGB", "RGBA"):
+            input_image = input_image.convert("RGB")
+        input_image.save(f"{out_folder}/{img_name.split(".")[0]}_no_hoi.png")
+
+        #inputs = {
+        #    "image": [output_image_rm],
+        #    "prompt": f"Add a person using or interacting with a {obj}.",
+        #    "generator": torch.manual_seed(0),
+        #    "true_cfg_scale": 4.0,
+        #    "negative_prompt": " ",
+        #    "num_inference_steps": 15,
+        #    "guidance_scale": 1.0,
+        #    "num_images_per_prompt": 1,
+        #}
+
+        #with torch.inference_mode():
+
+        #    output = pipeline(**inputs)
+        #    output_image_rm = output.images[0]
+        #    output_image_rm.save(f"{out_folder}/{img_name.split(".")[0]}_hoi.png")
+
+        inputs = {
+            "image": [input_image],
+            "prompt": f"Add a person interacting with the {obj}.",
+            "generator": torch.manual_seed(0),
+            "true_cfg_scale": 4.0,
+            "negative_prompt": " ",
+            "num_inference_steps": 15,
+            "guidance_scale": 1.0,
+            "num_images_per_prompt": 1,
+        }
+
+        with torch.inference_mode():
+
+            output = pipeline(**inputs)
+            output_image_rm = output.images[0]
+            output_image_rm.save(f"{out_folder}/{img_name.split(".")[0]}_hoi.png")
+
+        
+
+    print("✅ Inference done.")
 
 
 
@@ -430,5 +279,5 @@ def qwen_inf_hoi_2():
 
 
 
-qwen_inf_change()
+qwen_inf_hoi_2()
 

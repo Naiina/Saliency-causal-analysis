@@ -31,7 +31,7 @@ def yolo_segmentation_plot(image_folder,segmented_images_dir):
         print(f"Processed and saved: {output_path}")
 
 
-def correct_categ_plotting(img_path,matched_boxes,best_box,outpath,):
+def correct_categ_plotting(img_path,matched_boxes,best_box,outpath):
 
     img_file = img_path.split("/")[-1]
         
@@ -70,10 +70,10 @@ def find_obj_size(model, img_path, outpath,plot = False):
 
     best_area = None
     best_conf = -1
-    best_box = None         # store best detection
-    matched_boxes = []      # store all matching detections
+    best_box = None         
+    matched_boxes = []     
 
-    # FIRST PASS → Identify the best matching detection
+    
     for result in results:
         for box in result.boxes:
             entity = result.names[int(box.cls)]
@@ -124,68 +124,126 @@ def yolo_segmentation_filter_size(image_folder, outfolder,out_seg = None):
                     shutil.copy(img_path, img_path_out)
 
 
-def yolo_segmentation_filter_hoi(image_folder, segmented_images_dir,csv_output):
+def bb_intersection_over_union(boxA, boxB):
+    # determine the (x, y)-coordinates of the intersection rectangle
+    xA = max(boxA[0], boxB[0])
+    yA = max(boxA[1], boxB[1])
+    xB = min(boxA[2]+boxA[0], boxB[2]+boxB[0])
+    yB = min(boxA[3]+boxA[1], boxB[3]+ boxB[1])
+
+    # compute the area of intersection rectangle
+    interArea = abs(max((xB - xA, 0)) * max((yB - yA), 0))
+    
+
+    if interArea == 0:
+        return 0
+    # compute the area of both the prediction and ground-truth
+    # rectangles
+    boxAArea = boxA[2] * boxA[3] 
+    boxBArea = boxB[2] * boxB[3]
+
+    # compute the intersection over union by taking the intersection
+    # area and dividing it by the sum of prediction + ground-truth
+    # areas - the interesection area
+    iou = interArea / float(boxAArea + boxBArea - interArea)
+    print("inter",interArea)
+    print("iou",iou)
+
+    # return the intersection over union value
+    return iou
+
+
+def is_duplicate(new_box, existing_boxes, threshold=0.5):
+    for box in existing_boxes:
+        if iou(new_box, box) > threshold:
+            return True
+    return False
+
+
+
+
+
+
+
+def nb_human_nb_obj(result,img_file):
+    bbox = None
+    area = None
+    nb_person = 0
+    nb_entity = 0
+    #l_bbox = []
+    for box in result.boxes:
+        entity = result.names[int(box.cls)]  
+        #print(entity)
+        if entity == "person":
+            nb_person+=1
+        if entity in img_file:
+            bbox = box.xywhn[0].tolist() 
+            #if not is_duplicate(bbox, l_bbox, threshold=0.5):
+            nb_entity+=1 
+            #l_bbox.append(bbox)
+            area = bbox[2]*bbox[3]
+            
+    return nb_person,nb_entity,bbox,area
+
+
+def yolo_segmentation_filter_hoi(image_folder, outfolder,outfolder2):
     model = YOLO("../huggingface_cache/yolov8s-world.pt")
 
-    l_img_id = [] 
-    l_detected_obj = []
-    l_bbox_size = []
+    l_files = list(set([ elem.split(".")[0].split("_")[0]+"_"+elem.split(".")[0].split("_")[1] for elem in os.listdir(image_folder) if elem.endswith(".png")]))
+    s_files = set(os.listdir(image_folder))
+    for img_file in l_files:             
+        img_file_hoi = img_file + "_hoi.png"
+        img_file_no_hoi = img_file + "_no_hoi.png"
+        img_path_hoi = os.path.join(image_folder, img_file_hoi) 
+        img_path_no_hoi = os.path.join(image_folder, img_file_no_hoi)
+        img_path_hoi_out = os.path.join(outfolder, img_file_hoi) 
+        img_path_no_hoi_out = os.path.join(outfolder, img_file_no_hoi) 
+        img_path_hoi_out2 = os.path.join(outfolder2, img_file_hoi) 
+        img_path_no_hoi_out2 = os.path.join(outfolder2, img_file_no_hoi) 
+        
+        if img_file_hoi in s_files and img_file_no_hoi in s_files:
 
-    d = defaultdict(dict)
-    
+            results_h = model(img_path_hoi)
+            results_n = model(img_path_no_hoi)
 
-    os.makedirs(segmented_images_dir, exist_ok=True)
-
-    for img_file in tqdm(os.listdir(image_folder)[:10], desc="Processing images"):
-        img_path = os.path.join(image_folder, img_file)
-        print("--------------------------------------------------")
-        print(img_file)
-        if os.path.isfile(img_path) and img_path.lower().endswith(".png"):
-            print("enter loop")
-            results = model(img_path)
-            nb_entity = 0
-            nb_person = 0 
-            
-            for result in tqdm(results):
-                plotted_img = result.plot()  
-                output_path = os.path.join(segmented_images_dir, f"seg_{img_file}")
-                Image.fromarray(plotted_img[..., ::-1]).save(output_path) 
-                
-
-                for box in result.boxes:
-                    entity = result.names[int(box.cls)]  
-                    print(entity)
-                    if entity == "person":
-                        nb_person+=1
-                    if entity in img_file:
-                        nb_entity+=1
-                        bbox = box.xywhn[0].tolist()  
-                        area = bbox[2]*bbox[3]
-                        mem_entity = entity
-            if "no_hoi" in img_file:
-                if nb_entity == 1 and nb_person == 0:    
-                    l_img_id.append(img_file)
-                    l_detected_obj.append(mem_entity)
-                    l_bbox_size.append(area)
-                    print("###########saved")
-            else:
-                if nb_entity == 1 and nb_person == 1:    
-                    l_img_id.append(img_file)
-                    l_detected_obj.append(entity)
-                    l_bbox_size.append(area)
-                    print("###########saved")
-            
-            print(nb_entity,nb_person)
-    
-
-    d = {"img":l_img_id,"detected obj":l_detected_obj,"size":l_bbox_size}
-    df = pd.DataFrame(d)
-    df.to_csv(csv_output, index=False)
-    print(f"\n✅ Saved bounding box data to {csv_output}")
+            nb_person_h,nb_entity_h,bbox_h,area_h = nb_human_nb_obj(results_h[0],img_file_hoi)
+            nb_person_n,nb_entity_n,bbox_n,area_n = nb_human_nb_obj(results_n[0],img_file_no_hoi)
+            print(area_h,area_n)
+            print("person",nb_person_h,nb_person_n)
+            print("entity",nb_entity_h,nb_entity_n)
+            if bbox_h!=None and bbox_n!=None:
+                iou = bb_intersection_over_union(bbox_h, bbox_n)
+                if nb_person_h == 1 and nb_person_n == 0 and nb_entity_h == 1 and nb_entity_n == 1:
+                    if iou > 0.5:
+                        #shutil.copy(img_path_hoi, img_path_hoi_out)
+                        #shutil.copy(img_path_no_hoi, img_path_no_hoi_out)
+                        plotted_img = results_h[0].plot()  
+                        Image.fromarray(plotted_img[..., ::-1]).save(img_path_hoi_out)  
+                        plotted_img = results_n[0].plot()  
+                        Image.fromarray(plotted_img[..., ::-1]).save(img_path_no_hoi_out) 
+                    else:
+                        plotted_img = results_h[0].plot()  
+                        Image.fromarray(plotted_img[..., ::-1]).save(img_path_hoi_out2)  
+                        plotted_img = results_n[0].plot()  
+                        Image.fromarray(plotted_img[..., ::-1]).save(img_path_no_hoi_out2) 
+                        #shutil.copy(img_path_hoi, img_path_hoi_out2)
+                        #shutil.copy(img_path_no_hoi, img_path_no_hoi_out2)
+                    
+                    
 
 
-#image_folder = "COCO/val2017/coco_modif_03_11_sorted"
-outfile = "COCO/val2017/changed_5_filtered"
-img_folder = "COCO/val2017/changed_obj_5"
+feat = "hoi"
 
-yolo_segmentation_filter_size(img_folder,outfile)
+if feat == "hoi":    
+    img_folder = "COCO/val2017/hoi_out"
+    outfile = "COCO/val2017/hoi_out_filtered"
+    outfile2 = "COCO/val2017/hoi_out_dfiltered"
+
+if feat == "size":
+    img_folder = "COCO/val2017/changed_obj_5"
+    #outfile = "COCO/val2017/hoi_out_5"
+
+
+
+#yolo_segmentation_filter_size(img_folder,outfile)
+yolo_segmentation_filter_hoi(img_folder, outfile,outfile2)
