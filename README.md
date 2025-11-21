@@ -34,8 +34,8 @@
 
 
 ## HOI
--hoi_out: pairs 297
--after filtering: 67 pairs
-manual inspection: 9 / 67 where human interacts with the wrong entity. Often if entity is small / on the side and difficult to identity or interact with. 5 yolo filtering errors and 2 wired pictures
+- hoi_out: pairs 297
+- after filtering: 67 pairs
+  
 
 
