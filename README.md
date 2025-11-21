@@ -36,6 +36,8 @@
 ## HOI
 - hoi_out: pairs 297
 - after filtering: 67 pairs
+- Both not mentioned: 6 / No hoi only mentioned: 4 / HOI only mentioned: 6 / Both mentioned: 40
+
   
 
 
