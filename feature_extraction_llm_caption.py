@@ -22,6 +22,21 @@ def get_dict_categ_to_supercateg(coco):
     cats = coco.loadCats(coco.getCatIds())
     return {cat["name"]:cat["supercategory"] for cat in cats}
 
+def get_effective_dep(token):
+    """
+    Returns the dependency relation that this token should inherit.
+    If it's a conj, climb up until reaching a non-conj head.
+    """
+    head = token
+    i = 0
+    while head.dep_ == "conj":
+        i+=1
+        head = head.head
+        print(head)
+        print(head.dep_)
+
+    return head.dep_
+
 
 
 def save_feat(csv_file,csv_out,feat):
@@ -47,11 +62,12 @@ def save_feat(csv_file,csv_out,feat):
         next(reader)
 
         for row in reader:
+
             img = row[1]
-            categ = img.split(".")[0].split("_")[1]
+            categ = img.split(".")[0].split("_")[3]
 
             size = "small" if "small" in img else "big"
-            hoi = "no_hoi" if "no_hoi" in img else "hoi"
+            hoi = "no_hoi" if "human" in img else "hoi"
 
             caption = row[2][2:-2]
             doc = nlp(caption)
@@ -61,12 +77,13 @@ def save_feat(csv_file,csv_out,feat):
             found = False
 
             for token in doc:
+                
                 if token.pos_ == "NOUN":
                     order += 1
                     lemma = token.lemma_.lower()
                     if lemma in l_categ:
                         found = True
-                        deprel = token.dep_
+                        deprel = get_effective_dep(token)
                         rank = order
                         break
 
@@ -79,7 +96,7 @@ def save_feat(csv_file,csv_out,feat):
                 l_deprel.append(deprel)
                 l_rank.append(rank)
 
-            l_img_id.append(img.split("_")[0])
+            l_img_id.append(img.split("_")[2])
             if feat == "size":
                 l_feat.append(size)
             if feat == "hoi":
@@ -115,9 +132,10 @@ def save_feat(csv_file,csv_out,feat):
 
 
 
-def mention_stats_size():
 
-    df = pd.read_csv("COCO/val2017/img_and_captions_changed_5.csv")
+def mention_stats_size(csv_file):
+
+    df = pd.read_csv(csv_file)
     #print(df)
     grouped = df.groupby("img_id")
 
@@ -149,13 +167,14 @@ def mention_stats_size():
     print("Small only mentioned:", big_minus1_small_positive)
     print("Big only mentioned:", small_minus1_big_positive)
     print("Both mentioned:", both_zero)
+    mention_heatmap_size(both_minus1, big_minus1_small_positive,small_minus1_big_positive, both_zero)
 
 
 
 
-def mention_stats_hoi():
+def mention_stats_hoi(csv):
 
-    df = pd.read_csv("COCO/val2017/img_and_captions_hoi.csv")
+    df = pd.read_csv(csv)
     #print(df)
     grouped = df.groupby("img_id")
 
@@ -187,22 +206,100 @@ def mention_stats_hoi():
     print("No hoi only mentioned:", no_hoi_only)
     print("HOI only mentioned:", hoi_only)
     print("Both mentioned:", both_mentioned)
+    mention_heatmap_hoi(both_not_mentioned, no_hoi_only,hoi_only, both_mentioned)
+
+
+
+
+
+def mention_heatmap_hoi(both_not_mentioned, no_hoi_only,hoi_only, both_mentioned):
+
+
+    # Your variables
+    data = np.array([
+        [both_not_mentioned, no_hoi_only],
+        [hoi_only, both_mentioned]
+    ])
+
+    labels = [
+        ["Both not mentioned", "No HOI only"],
+        ["HOI only", "Both mentioned"]
+    ]
+
+    fig, ax = plt.subplots()
+    im = ax.imshow(data)   # uses matplotlib's default colormap
+
+    # Show values on cells
+    for i in range(data.shape[0]):
+        for j in range(data.shape[1]):
+            ax.text(j, i, str(data[i, j]), ha="center", va="center")
+
+    # Set tick labels
+    ax.set_xticks([0, 1])
+    ax.set_yticks([0, 1])
+    ax.set_xticklabels(["No", "Yes"])
+    ax.set_yticklabels(["No", "Yes"])
+    plt.xlabel("No HOI")
+    plt.ylabel("HOI")
+
+    plt.title("Mention Heatmap")
+    plt.colorbar(im)
+    plt.tight_layout()
+    plt.show()
+
+
+
+def mention_heatmap_size(both_minus1, big_minus1_small_positive,small_minus1_big_positive, both_zero):
+
+
+    data = np.array([
+    [both_minus1, big_minus1_small_positive],
+    [small_minus1_big_positive, both_zero]
+    ])
+
+    labels = [
+        ["Both not mentioned", "Small only mentioned"],
+        ["Big only mentioned", "Both mentioned"]
+    ]
+
+    fig, ax = plt.subplots()
+    #im = ax.imshow(data)  # default matplotlib heatmap
+    im = ax.imshow(data, cmap="Blues")
+
+    # Annotate each cell with its value
+    for i in range(data.shape[0]):
+        for j in range(data.shape[1]):
+            ax.text(j, i, str(data[i, j]), ha="center", va="center", color="black")
+
+    # Axis ticks
+    ax.set_xticks([0, 1])
+    ax.set_yticks([0, 1])
+    ax.set_xticklabels(["No", "Yes"])
+    ax.set_yticklabels(["No", "Yes"])
+    plt.xlabel("Small")
+    plt.ylabel("Big")
+
+    plt.title("Mention Heatmap")
+    plt.colorbar(im)
+    plt.tight_layout()
+    plt.savefig("mention_size.pdf")
+    plt.show()
 
 
 
 feat = "hoi"
 
 if feat == "size":
-    csv_file = "COCO/val2017/changed_5_filtered_captions.csv"
-    csv_out = "COCO/val2017/img_and_captions_changed_5.csv"
+    csv_file = "COCO/val2014/changed_temp_filtered_captions.csv"
+    csv_out = "COCO/val2017/img_and_captions_changed_temp.csv"
 
 if feat == "hoi":
-    csv_file = "COCO/val2017/hoi_captions.csv"
-    csv_out = "COCO/val2017/img_and_captions_hoi.csv"
+    csv_file = "COCO/val2014/hoi_detect_captions_standing_h.csv"
+    csv_out = "COCO/val2014/img_and_captions_hoi_detect_standing_h.csv"
 
 
 
-#save_feat(csv_file,csv_out,feat)
-mention_stats_hoi()
+save_feat(csv_file,csv_out,feat)
+mention_stats_hoi(csv_out)
 
 #mention_stats()

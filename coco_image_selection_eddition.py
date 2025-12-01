@@ -12,8 +12,8 @@ from tqdm import tqdm
 from sys import argv
 import cv2
 import csv
-from utils import get_dist_between_two_objects,rank_deprel_dep_nb, dep_dist
-from utils import get_dict_categ_to_supercateg, get_annot_categ, get_normalised_size_and_pos_categ, mean_masked_saliency
+#from utils import get_dist_between_two_objects,rank_deprel_dep_nb, dep_dist
+#from utils import get_dict_categ_to_supercateg, get_annot_categ, get_normalised_size_and_pos_categ, mean_masked_saliency
 import json
 from collections import Counter
 import shutil
@@ -22,12 +22,7 @@ from PIL import Image
 
 
 
-dataDir = 'COCO'
-dataType = 'val2017'
-imgDir = os.path.join(dataDir, dataType)
 
-annFile = '{}/annotations/instances_{}.json'.format(dataDir, dataType)
-coco = COCO(annFile)
 
 # --- Output folders ---
 os.makedirs('COCO/val2017/coco_outdoor', exist_ok=True)
@@ -130,18 +125,19 @@ def find_item_to_change(l_ann,l_bbox):
     return None
 
 
-def find_item_to_change_2(l_ann,l_bbox):
+def find_another_item_to_change(l_ann,l_bbox,obj):
     paired = list(zip(l_ann, l_bbox))
     random.shuffle(paired)
     d =  defaultdict(list)
     for ann,bbox in paired:
-        d[ann].append(bbox)  
+        if ann != obj:
+            d[ann].append(bbox)  
 
     #print(d)  
     for k,v in d.items():
-        if len(v) == 1:
-            if 0.01<v[0]<0.05:
-                return k 
+        #if len(v) == 1:
+        if 0.01<v[0]<0.05:
+            return k 
     return None
 
 
@@ -397,11 +393,24 @@ def classify_and_save_change_2(max_it = -1):
     df.to_csv("img_and_promts_to_change_2_val2017.csv")
 
 
+def get_anns_by_filename(coco, filename):
+    # Look up COCO image entry by filename
+  
+    img_info = next(img for img in coco.dataset['images'] if img['file_name'] == filename)
+    img_id = img_info['id']
+    img_area = img_info['width'] * img_info['height']
 
-def img_without_human(max_it = 30):
+    # Load annotations
+    ann_ids = coco.getAnnIds(imgIds=[img_id])
+    return coco.loadAnns(ann_ids), img_area
+
+
+
+
+def img_without_human(imgDir,dataset,max_it = -1):
     l_img = []
     l_obj = []
-    for i,img_id in enumerate(coco.getImgIds()):
+    for i,img_id in tqdm(enumerate(coco.getImgIds())):
         if max_it>0 and i>max_it:
             break
         
@@ -414,7 +423,7 @@ def img_without_human(max_it = 30):
         cat_ids = [ann['category_id'] for ann in anns]
         cat_names = [coco.loadCats([cid])[0]['name'] for cid in cat_ids]
         cat_bbox = [ann['bbox'][2]*ann['bbox'][2]/img_area for ann in anns]
-
+        #print(i)
         if "person" in cat_names:
             #print("contains a person")
             continue
@@ -439,7 +448,7 @@ def img_without_human(max_it = 30):
             #print("print dominant categ")
             continue
     
-        target_dir = "COCO/val2017/hoi/"
+        target_dir = f"COCO/{dataset}/hoi/"
 
         item_to_add = find_item_to_change(cat_names,cat_bbox)
         if item_to_add:
@@ -448,9 +457,10 @@ def img_without_human(max_it = 30):
             dest_path = os.path.join(target_dir, img['file_name'])
 
             img_path = os.path.join(imgDir, img['file_name'])
-
+            #print(img_path)
             if os.path.exists(img_path):
                 shutil.copy(img_path, dest_path)
+        
         # 
             l_img.append(img['file_name'])
             l_obj.append(item_to_add)
@@ -467,7 +477,52 @@ def img_without_human(max_it = 30):
             #plt.show()
     d = {"img":l_img,"obj_to_add":l_obj}
     df = pd.DataFrame.from_dict(d)
-    df.to_csv("img_and_promts_hoi.csv")
+    df.to_csv(f"COCO/{dataset}/img_and_promts_hoi.csv")
+
+
+
+
+
+
+def hoi_another_obj(csv_file,dataset,coco,max_it = -1):
+    l_img = []
+    l_obj = []
+    l_other_obj = []
+    
+    with open(csv_file, newline='', encoding='utf-8') as csvfile:
+        reader = csv.reader(csvfile)
+        next(reader)
+
+        for row in reader:
+            filename = row[1]
+            
+            anns,img_area = get_anns_by_filename(coco, filename)
+
+        
+            cat_ids = [ann['category_id'] for ann in anns]
+            cat_names = [coco.loadCats([cid])[0]['name'] for cid in cat_ids]
+            cat_bbox = [ann['bbox'][2]*ann['bbox'][2]/img_area for ann in anns]
+
+            new_item_to_add = find_another_item_to_change(cat_names,cat_bbox,row[2])
+            if new_item_to_add:
+
+                l_img.append(row[1])
+                l_obj.append(row[2])
+                l_other_obj.append(new_item_to_add)
+        
+
+
+            #I = cv2.imread(img_path)
+            #I = cv2.cvtColor(I, cv2.COLOR_BGR2RGB)
+            #for ann in anns:
+            #    x, y, w, h = ann['bbox']
+            #    cv2.rectangle(I, (int(x), int(y)), (int(x + w), int(y + h)), (0, 0, 255), 2)
+            #plt.imshow(I)
+            #plt.axis('off')
+            #plt.show()
+    d = {"img":l_img,"obj_to_add":l_obj,"other_obj":l_other_obj}
+    df = pd.DataFrame.from_dict(d)
+    df.to_csv(f"COCO/{dataset}/img_and_promts_hoi_other.csv")
 
 
 
@@ -488,12 +543,27 @@ s_categ_to_add_outdoor = set(["person", 'cat', 'dog',
 
 
 s_categ_to_exclude = set(["airplane","boat",'frisbee', 'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket',])
-d_categ_freq = compute_coco_category_distribution(coco)
+
 
 
 
 #img_without_human(-1)
 #print("end")
 
-#img_without_human()
-classify_and_save_change_2(-1)
+#img_without_human("COCO/val2014","val2014",-1)
+#classify_and_save_change_2(-1)
+
+
+dataDir = 'COCO'
+dataType = 'val2014'
+imgDir = os.path.join(dataDir, dataType)
+
+annFile = '{}/annotations/instances_{}.json'.format(dataDir, dataType)
+coco = COCO(annFile)
+
+d_categ_freq = compute_coco_category_distribution(coco)
+
+
+dataset = "val2014"
+csv_file = f"COCO/{dataset}/img_and_promts_hoi.csv"
+hoi_another_obj(csv_file,dataset,coco,max_it = -1)

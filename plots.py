@@ -102,10 +102,10 @@ def rank_diff_per_categ_hoi(csv):
 feat = "hoi"
 
 if feat == "size":
-    csv = "COCO/val2017/img_and_captions_changed_5.csv"
+    csv = "COCO/val2017/img_and_captions_changed_temp.csv"
     rank_diff_per_categ_size(csv)
 if feat == "hoi":
-    csv = "COCO/val2017/img_and_captions_hoi.csv"
+    csv = "COCO/val2014/img_and_captions_hoi_detect_standing_h.csv"
     rank_diff_per_categ_hoi(csv)
 
 

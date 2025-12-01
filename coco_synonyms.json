@@ -11,20 +11,18 @@
     "adult",
     "guy",
     "lady",
-    "human"
+    "human",
+    "player"
   ],
   "bicycle": [
     "bike",
     "cycle",
-    "bicycle",
-    "pushbike"
+    "bicycle"
   ],
   "car": [
     "car",
     "vehicle",
-    "automobile",
-    "sedan",
-    "coupe"
+    "automobile"
   ],
   "motorcycle": [
     "motorcycle",
@@ -106,7 +104,8 @@
   ],
   "cow": [
     "cow",
-    "cattle"
+    "cattle",
+    "bull"
   ],
   "elephant": [
     "elephant"
@@ -318,7 +317,8 @@
     "vase"
   ],
   "scissors": [
-    "scissors"
+    "scissors",
+    "scissor"
   ],
   "teddy bear": [
     "teddy bear",

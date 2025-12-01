@@ -99,8 +99,10 @@ def qwen_inf_add_test():
 def qwen_inf_change():
     l_already_done = os.listdir("COCO/val2017/changed_obj_5/")
     l_already_done = set(elem.split("_")[0] for elem in l_already_done)
+    l_already_done2 = os.listdir("COCO/val2017/changed_obj_6/")
+    l_already_done2 = set(elem.split("_")[0] for elem in l_already_done2)
     img_folder = "COCO/val2017/obj_to_change"
-    out_folder = "COCO/val2017/changed_obj_6"
+    out_folder = "COCO/val2017/changed_obj_7"
     with open("img_and_promts_to_change_val2017.csv", newline='', encoding='utf-8') as csvfile:
         reader = csv.reader(csvfile)
         next(reader)
@@ -174,13 +176,15 @@ def qwen_inf_change():
 
 
 
-def qwen_inf_hoi():
-    img_folder = "COCO/val2017/hoi"
-    out_folder = "COCO/val2017/hoi_out"
-    with open("img_and_promts_hoi_small.csv", newline='', encoding='utf-8') as csvfile:
+def qwen_inf_hoi(dataset):
+    img_folder = f"COCO/{dataset}/hoi"
+    out_folder = f"COCO/{dataset}/hoi_out_2"
+    with open(f"COCO/{dataset}/img_and_promts_hoi.csv", newline='', encoding='utf-8') as csvfile:
         reader = csv.reader(csvfile)
         next(reader)
         for row in tqdm(reader):
+            if int(row[0])<1005:
+                continue
                 
             img_name = row[1]
             obj = row[2]
@@ -198,7 +202,7 @@ def qwen_inf_hoi():
                 "generator": torch.manual_seed(0),
                 "true_cfg_scale": 4.0,
                 "negative_prompt": " ",
-                "num_inference_steps": 10,
+                "num_inference_steps": 15,
                 "guidance_scale": 1.0,
                 "num_images_per_prompt": 1,
             }
@@ -208,6 +212,23 @@ def qwen_inf_hoi():
                 output = pipeline(**inputs)
                 output_image_rm = output.images[0]
                 output_image_rm.save(f"{out_folder}/{img_name.split(".")[0]}_{obj}_hoi.png")
+            
+            #inputs = {
+            #    "image": [input_image],
+            #    "prompt": f"Add a person standing on the side.",
+            #    "generator": torch.manual_seed(0),
+            #    "true_cfg_scale": 4.0,
+            #    "negative_prompt": " ",
+            #    "num_inference_steps": 15,
+            #    "guidance_scale": 1.0,
+            #    "num_images_per_prompt": 1,
+            #}
+
+            #with torch.inference_mode():
+
+            #    output = pipeline(**inputs)
+            #    output_image_rm = output.images[0]
+            #    output_image_rm.save(f"{out_folder}/{img_name.split(".")[0]}_{obj}_no_hoi_human.png")
 
 
         print("✅ Inference done.")
@@ -215,69 +236,86 @@ def qwen_inf_hoi():
 
 
 
-def qwen_inf_hoi_2():
-    img_folder = "COCO/val2017/changed_obj_5"
-    out_folder = "COCO/val2017/hoi_out_5"
-    l_img = os.listdir(img_folder)
 
 
-    for img_name in tqdm(l_img):
-        print(img_name)
-        if "rm" in img_name or "small" in img_name:
-            continue
-        obj = img_name.split(".")[0].split("_")[1]
-        print(obj)
-        
-        img_path = os.path.join(img_folder,img_name)
+def qwen_inf_hoi_other(dataset):
+    img_folder = f"COCO/{dataset}/hoi"
+    out_folder = f"COCO/{dataset}/hoi_out_test"
+    already_done = [elem.split("_")[0] for elem in os.listdir(out_folder)]
+    with open(f"COCO/{dataset}/img_and_promts_hoi_other.csv", newline='', encoding='utf-8') as csvfile:
+        reader = csv.reader(csvfile)
+        next(reader)
+        for row in tqdm(reader):
+                
+            img_name = row[1]
+            if img_name.split("_")[0]+".png" in already_done:
+                continue
+            obj = row[3]
 
-        input_image = Image.open(img_path)
-        if input_image.mode not in ("RGB", "RGBA"):
-            input_image = input_image.convert("RGB")
-        input_image.save(f"{out_folder}/{img_name.split(".")[0]}_no_hoi.png")
+            img_path = os.path.join(img_folder,img_name)
 
-        #inputs = {
-        #    "image": [output_image_rm],
-        #    "prompt": f"Add a person using or interacting with a {obj}.",
-        #    "generator": torch.manual_seed(0),
-        #    "true_cfg_scale": 4.0,
-        #    "negative_prompt": " ",
-        #    "num_inference_steps": 15,
-        #    "guidance_scale": 1.0,
-        #    "num_images_per_prompt": 1,
-        #}
+            input_image = Image.open(img_path)
+            if input_image.mode not in ("RGB", "RGBA"):
+                input_image = input_image.convert("RGB")
+            input_image.save(f"{out_folder}/{img_name.split(".")[0]}_{obj}_no_hoi.png")
+            
+            inputs = {
+                "image": [input_image],
+                "prompt": f"Add a person interacting with the {obj}.",
+                "generator": torch.manual_seed(0),
+                "true_cfg_scale": 4.0,
+                "negative_prompt": " ",
+                "num_inference_steps": 15,
+                "guidance_scale": 1.0,
+                "num_images_per_prompt": 1,
+            }
 
-        #with torch.inference_mode():
+            with torch.inference_mode():
 
-        #    output = pipeline(**inputs)
-        #    output_image_rm = output.images[0]
-        #    output_image_rm.save(f"{out_folder}/{img_name.split(".")[0]}_hoi.png")
+                output = pipeline(**inputs)
+                output_image_rm = output.images[0]
+                output_image_rm.save(f"{out_folder}/{img_name.split(".")[0]}_{obj}_hoi_other.png")
 
-        inputs = {
-            "image": [input_image],
-            "prompt": f"Add a person interacting with the {obj}.",
-            "generator": torch.manual_seed(0),
-            "true_cfg_scale": 4.0,
-            "negative_prompt": " ",
-            "num_inference_steps": 15,
-            "guidance_scale": 1.0,
-            "num_images_per_prompt": 1,
-        }
 
-        with torch.inference_mode():
+        print("✅ Inference done.")
 
-            output = pipeline(**inputs)
-            output_image_rm = output.images[0]
-            output_image_rm.save(f"{out_folder}/{img_name.split(".")[0]}_hoi.png")
 
-        
+
+def qwen_inf_hoi_human(dataset):
+    img_folder = f"COCO/{dataset}/hoi_out_m_filter"
+    out_folder = f"COCO/{dataset}/hoi_out_h2"
+    #already_done = [elem.split("_")[0] for elem in os.listdir(out_folder)]
+    l_img_files = os.listdir(img_folder)
+    for img_file in l_img_files:
+        if "no_hoi" in img_file:
+            img_path = os.path.join(img_folder,img_file)
+
+            input_image = Image.open(img_path)
+            if input_image.mode not in ("RGB", "RGBA"):
+                input_image = input_image.convert("RGB")
+            input_image.save(f"{out_folder}/{img_file}")
+            
+            inputs = {
+                "image": [input_image],
+                "prompt": f"Add a person standing on the side.",
+                "generator": torch.manual_seed(0),
+                "true_cfg_scale": 4.0,
+                "negative_prompt": " ",
+                "num_inference_steps": 15,
+                "guidance_scale": 1.0,
+                "num_images_per_prompt": 1,
+            }
+
+            with torch.inference_mode():
+
+                output = pipeline(**inputs)
+                output_image_rm = output.images[0]
+                output_image_rm.save(f"{out_folder}/{img_file.split(".")[0]}_human.png")
+
 
     print("✅ Inference done.")
 
 
-
-
-
-
-
-qwen_inf_hoi_2()
+dataset = "val2014"
+qwen_inf_hoi(dataset)
 

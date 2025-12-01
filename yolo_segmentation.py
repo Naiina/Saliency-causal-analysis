@@ -5,7 +5,7 @@ from PIL import Image
 from ultralytics import YOLO
 import math
 from tqdm import tqdm
-from accelerate import infer_auto_device_map
+#from accelerate import infer_auto_device_map
 import pandas as pd
 from collections import defaultdict
 import shutil
@@ -104,8 +104,9 @@ def find_obj_size(model, img_path, outpath,plot = False):
 def yolo_segmentation_filter_size(image_folder, outfolder,out_seg = None):
     model = YOLO("../huggingface_cache/yolov8s-world.pt")
 
-    l_files = list(set([ elem.split(".")[0].split("_")[0]+"_"+elem.split(".")[0].split("_")[1] for elem in os.listdir(image_folder) if elem.endswith(".png")]))
+    l_files = list(set([ elem.split(".")[0].split("_")[0]+elem.split(".")[0].split("_")[1] for elem in os.listdir(image_folder) if elem.endswith(".png")]))
     s_files = set(os.listdir(image_folder))
+    
     for img_file in l_files:             
 
         img_path_small = os.path.join(image_folder, img_file) + "_small.png"
@@ -146,21 +147,11 @@ def bb_intersection_over_union(boxA, boxB):
     # area and dividing it by the sum of prediction + ground-truth
     # areas - the interesection area
     iou = interArea / float(boxAArea + boxBArea - interArea)
-    print("inter",interArea)
-    print("iou",iou)
+    #print("inter",interArea)
+    #   print("iou",iou)
 
     # return the intersection over union value
     return iou
-
-
-def is_duplicate(new_box, existing_boxes, threshold=0.5):
-    for box in existing_boxes:
-        if iou(new_box, box) > threshold:
-            return True
-    return False
-
-
-
 
 
 
@@ -170,17 +161,14 @@ def nb_human_nb_obj(result,img_file):
     area = None
     nb_person = 0
     nb_entity = 0
-    #l_bbox = []
+
     for box in result.boxes:
         entity = result.names[int(box.cls)]  
-        #print(entity)
         if entity == "person":
             nb_person+=1
         if entity in img_file:
             bbox = box.xywhn[0].tolist() 
-            #if not is_duplicate(bbox, l_bbox, threshold=0.5):
             nb_entity+=1 
-            #l_bbox.append(bbox)
             area = bbox[2]*bbox[3]
             
     return nb_person,nb_entity,bbox,area
@@ -189,9 +177,10 @@ def nb_human_nb_obj(result,img_file):
 def yolo_segmentation_filter_hoi(image_folder, outfolder,outfolder2):
     model = YOLO("../huggingface_cache/yolov8s-world.pt")
 
-    l_files = list(set([ elem.split(".")[0].split("_")[0]+"_"+elem.split(".")[0].split("_")[1] for elem in os.listdir(image_folder) if elem.endswith(".png")]))
+    l_files = list(set([ elem.split(".")[0].split("_")[0]+"_"+elem.split(".")[0].split("_")[1]+"_"+elem.split(".")[0].split("_")[2]+"_"+elem.split(".")[0].split("_")[3] for elem in os.listdir(image_folder) if elem.endswith(".png")]))
     s_files = set(os.listdir(image_folder))
-    for img_file in l_files:             
+    for img_file in l_files: 
+          
         img_file_hoi = img_file + "_hoi.png"
         img_file_no_hoi = img_file + "_no_hoi.png"
         img_path_hoi = os.path.join(image_folder, img_file_hoi) 
@@ -208,39 +197,44 @@ def yolo_segmentation_filter_hoi(image_folder, outfolder,outfolder2):
 
             nb_person_h,nb_entity_h,bbox_h,area_h = nb_human_nb_obj(results_h[0],img_file_hoi)
             nb_person_n,nb_entity_n,bbox_n,area_n = nb_human_nb_obj(results_n[0],img_file_no_hoi)
-            print(area_h,area_n)
-            print("person",nb_person_h,nb_person_n)
-            print("entity",nb_entity_h,nb_entity_n)
+            #print(area_h,area_n)
+            #print("person",nb_person_h,nb_person_n)
+            #print("entity",nb_entity_h,nb_entity_n)
             if bbox_h!=None and bbox_n!=None:
                 iou = bb_intersection_over_union(bbox_h, bbox_n)
                 if nb_person_h == 1 and nb_person_n == 0 and nb_entity_h == 1 and nb_entity_n == 1:
                     if iou > 0.5:
-                        #shutil.copy(img_path_hoi, img_path_hoi_out)
-                        #shutil.copy(img_path_no_hoi, img_path_no_hoi_out)
-                        plotted_img = results_h[0].plot()  
-                        Image.fromarray(plotted_img[..., ::-1]).save(img_path_hoi_out)  
-                        plotted_img = results_n[0].plot()  
-                        Image.fromarray(plotted_img[..., ::-1]).save(img_path_no_hoi_out) 
+                        shutil.copy(img_path_hoi, img_path_hoi_out)
+                        shutil.copy(img_path_no_hoi, img_path_no_hoi_out)
+                        #plotted_img = results_h[0].plot()  
+                        #Image.fromarray(plotted_img[..., ::-1]).save(img_path_hoi_out)  
+                        #plotted_img = results_n[0].plot()  
+                        #Image.fromarray(plotted_img[..., ::-1]).save(img_path_no_hoi_out) 
                     else:
-                        plotted_img = results_h[0].plot()  
-                        Image.fromarray(plotted_img[..., ::-1]).save(img_path_hoi_out2)  
-                        plotted_img = results_n[0].plot()  
-                        Image.fromarray(plotted_img[..., ::-1]).save(img_path_no_hoi_out2) 
-                        #shutil.copy(img_path_hoi, img_path_hoi_out2)
-                        #shutil.copy(img_path_no_hoi, img_path_no_hoi_out2)
+                        #plotted_img = results_h[0].plot()  
+                        #Image.fromarray(plotted_img[..., ::-1]).save(img_path_hoi_out2)  
+                        #plotted_img = results_n[0].plot()  
+                        #Image.fromarray(plotted_img[..., ::-1]).save(img_path_no_hoi_out2) 
+                        shutil.copy(img_path_hoi, img_path_hoi_out2)
+                        shutil.copy(img_path_no_hoi, img_path_no_hoi_out2)
                     
-                    
+
+
+
+
+
+
 
 
 feat = "hoi"
-
+dataset = "val2014"
 if feat == "hoi":    
-    img_folder = "COCO/val2017/hoi_out"
-    outfile = "COCO/val2017/hoi_out_filtered"
-    outfile2 = "COCO/val2017/hoi_out_dfiltered"
+    img_folder = f"COCO/{dataset}/hoi_out"
+    outfile = f"COCO/{dataset}/hoi_out_filtered"
+    outfile2 = f"COCO/{dataset}/hoi_out_dfiltered"
 
 if feat == "size":
-    img_folder = "COCO/val2017/changed_obj_5"
+    img_folder = f"COCO/{dataset}/changed_obj_5"
     #outfile = "COCO/val2017/hoi_out_5"
 
 
